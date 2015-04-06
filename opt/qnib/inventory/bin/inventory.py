@@ -11,7 +11,8 @@ Usage:
 Options:
     --host <str>            neo4j hostname [default: neo4j.service.consul]
     --server                Start server listening for JSON blobs to lookup
-    --zmq-port <int>        zmq socket to bind to [default: 5557]
+    --zmq-host <str>        zmq host to connect to [default: zmq.logstash.service.consul]
+    --zmq-port <int>        zmq socket to connect to [default: 5557]
 
 General Options:
     -h --help               Show this screen.
@@ -78,8 +79,8 @@ class QnibConfig(RawConfigParser):
             }
         else:
             self._opt = opt
-            self.logformat = '%(asctime)-15s %(levelname)-5s [%(module)s] %(message)s'
             self.loglevel = opt['--loglevel']
+            self.logformat = '%(asctime)-15s %(levelname)-5s [%(module)s] %(message)s'
             self.log2stdout = opt['--log2stdout']
             if self.loglevel is None and opt.get('--cfg') is None:
                 print "please specify loglevel (-L)"
@@ -245,7 +246,9 @@ class QNIBInv(object):
         """
         context = zmq.Context()
         self._consumer_receiver = context.socket(zmq.REP)
-        self._consumer_receiver.bind("tcp://0.0.0.0:%s" % self._cfg['--zmq-port'])
+        url = "tcp://%(--zmq-host)s:%(--zmq-port)s" % self._cfg
+        self._cfg._logger.info("Connect to '%s'" % url)
+        self._consumer_receiver.connect(url)
         while True:
             msg = json.loads(self._consumer_receiver.recv())
             new_msg = self.lookup_inv(msg)
@@ -257,10 +260,23 @@ class QNIBInv(object):
         :return: enriched JSON blob to reply to logstash
         """
         msg['inventory_lookup'] = 1
-        if False:
-            pass
+        if 'program' not in msg.keys():
+            msg['no_program'] = 1
+        elif msg['program'] == "slurmd" and msg['message'].startswith("launch task "):
+            regex = "launch\s+task\s+(?P<jobid>\d+)\.(?P<task_nr>\d+)\s+request\s+from\s+"
+            regex += "(?P<userid>\d+)\.(?P<groupid>\d+)@(?P<ip_addr>[\w\.]+)\s+\(port\s+(?P<port_nr>\d+)\)"
+            mat = re.match(regex, msg['message'])
+            if mat:
+                dic = mat.groupdict()
+                msg['slurm_jobid'] = dic['jobid']
+                msg['slurm_task'] = dic['task_nr']
+        elif re.match("^slurm_\d+$", msg['program']):
+            # Log message from jobscript
+            dic = re.match("^slurm_(?P<jobid>\d+)$", msg['program']).groupdict()
+            msg['program'] = "slurm_out"
+            msg['slurm_jobid'] = dic['jobid']
         else:
-            msg['message'] = "NOT_HANDLED_BY_INVENTORY_YET: %(message)s" % msg
+            #msg['message'] = "NOT_HANDLED_BY_INVENTORY_YET: %(message)s" % msg
             msg['inventory_lookup'] = 0
         return msg
 
