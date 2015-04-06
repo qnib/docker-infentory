@@ -1,0 +1,14 @@
+{
+  "services": [
+    {
+        "id": "inventory",
+        "name": "inventory",
+        "tags": ["qnib"],
+        "port": 5514,
+        "checks": [{
+            "script": "supervisorctl status inventory | grep RUNNING",
+            "interval": "10s"
+        }]
+    }
+  ]
+}
