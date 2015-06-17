@@ -248,7 +248,7 @@ class QNIBInv(object):
         self._consumer_receiver = context.socket(zmq.REP)
         url = "tcp://%(--zmq-host)s:%(--zmq-port)s" % self._cfg
         self._cfg._logger.info("Connect to '%s'" % url)
-        self._consumer_receiver.connect(url)
+        self._consumer_receiver.bind(url)
         while True:
             msg = json.loads(self._consumer_receiver.recv())
             new_msg = self.lookup_inv(msg)
