@@ -11,8 +11,8 @@ Usage:
 Options:
     --host <str>            neo4j hostname [default: neo4j.service.consul]
     --server                Start server listening for JSON blobs to lookup
-    --zmq-host <str>        zmq host to connect to [default: zmq.logstash.service.consul]
-    --zmq-port <int>        zmq socket to connect to [default: 5557]
+    --zmq-host <str>        zmq host to bind to [default: 0.0.0.0]
+    --zmq-port <int>        zmq socket to bind to [default: 5557]
 
 General Options:
     -h --help               Show this screen.
