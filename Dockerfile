@@ -1,5 +1,4 @@
-FROM qnib/terminal:light
-MAINTAINER "Christian Kniep <christian@qnib.org>"
+FROM qnib/terminal
 
 RUN yum install -y python-zmq python-pip libyaml-devel python-devel  && \
     pip install neo4jrestclient pyyaml docopt
